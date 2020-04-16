@@ -1,28 +1,37 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+
+/*
+* 111.230.233.136
+* admin
+* admin
+* */
+
 
 public class ftpClient {
     private int pasvDataPort;
     private static String hostname;
     private static String user;
     private static String passwd;
-    private List<String> fileDirectory;
-
+    private List<String> fileDirectory=new ArrayList<>();
+    private String basePath="C:\\Users\\20173\\Desktop\\ftptest\\";
     public static void main(String[] args) throws IOException {
         ftpClient test=new ftpClient();
-//        Scanner scanner=new Scanner(System.in);
-//        System.out.println("请输入将要连接的主机IP:");
-//        hostname=scanner.nextLine();
-//        System.out.println("用户名:");
-//        user=scanner.nextLine();
-//        System.out.println("密码:");
-//        passwd=scanner.nextLine();
-        hostname="47.97.221.221";
-        user="kkc";
-        passwd="kkc";
+        Scanner scanner=new Scanner(System.in);
+        System.out.println("请输入将要连接的主机IP:");
+        hostname=scanner.nextLine();
+        System.out.println("用户名:");
+        user=scanner.nextLine();
+        System.out.println("密码:");
+        passwd=scanner.nextLine();
+//        hostname="47.97.221.221";
+//        user="kkc";
+//        passwd="kkc";
         //"47.97.221.221"
         Socket sock=new Socket(hostname,21);
         System.out.println("LocalAddr"+sock.getLocalSocketAddress());
@@ -41,6 +50,7 @@ public class ftpClient {
     public int login(InputStream input, OutputStream output) throws IOException{
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8));
         BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+        Scanner scanner=new Scanner(System.in);
         try {
             read(input);
 //            String welcome;
@@ -66,12 +76,17 @@ public class ftpClient {
             writer.write("TYPE A");writer.newLine();writer.flush();
             read(input);
             /*
-            * 这个地方后期可以考虑手动增加主动模式
-            * */
+             * 这个地方后期可以考虑手动增加主动模式
+             * */
 
             listFile(writer,input);
-            downLoad("pj.js",writer,input);
-            upload("pj.js",writer,input);
+            System.out.print("Which file do you want to download:");
+            String filename=scanner.nextLine();
+            downLoad(filename,writer,input);
+            readDirectoryFile(basePath);
+            System.out.print("Which file do you want to upload:");
+            filename=scanner.nextLine();
+            upload(filename,writer,input);
 
 
         }catch (Exception e){
@@ -100,6 +115,7 @@ public class ftpClient {
         read(input);
         readData(pasvInput);
         read(input);
+
     }
     public void downLoad(String filename,BufferedWriter writer,InputStream input) throws IOException{
         /*
@@ -109,35 +125,53 @@ public class ftpClient {
          * */
         if(this.fileDirectory.indexOf(filename)==-1){
             System.out.println("<<< Searching File...");
-            System.out.println("<<< Failure: File is not exsited.");
+            System.out.println("<<< Failure: Server File is not exsited.");
             return;
         }
-        String path="C:\\Users\\20173\\Desktop\\ftptest\\"+filename;
+        String path=basePath+filename;
         if(fileExist(path)){
             System.out.println("<<< Downloading...");
             System.out.println("<<< Failure: File exsited.");
             return;
         }
+        else {
+            System.out.println("Downloading...");
+        }
+        writer.write("TYPE I");writer.newLine();writer.flush();
+        read(input);
         usePasv(writer,input);
         writer.write("RETR "+filename);writer.newLine();writer.flush();
         Socket downloadSock=new Socket(hostname,this.pasvDataPort);
         InputStream pasvInput=downloadSock.getInputStream();
         read(input);
 
-        String temp;
-        while(true){
-            if(pasvInput.available()!=0){
-                byte[] bytes = new byte[pasvInput.available()];
-                pasvInput.read(bytes);
-                 temp = new String(bytes);
-                break;
-            }
-        }
         try {
-            FileWriter fileWriter=new FileWriter(path);
-            fileWriter.write(temp);
-            fileWriter.flush();
-            fileWriter.close();
+            BufferedInputStream in=null;
+            BufferedOutputStream out=null;
+            in=new BufferedInputStream(pasvInput);
+            out=new BufferedOutputStream(new FileOutputStream(path));
+            byte[] bytes = new byte[1024];
+            int len=-1;
+            int tranferSize=0;
+            while((len=in.read(bytes))!=-1){
+                tranferSize+=len;
+                out.write(bytes,0,len);
+            }
+            in.close();
+            out.close();
+//            while(true){
+//                if(pasvInput.available()!=0){
+//                    byte[] bytes = new byte[pasvInput.available()];
+//                    pasvInput.read(bytes);
+//                    temp = new String(bytes);
+//                    break;
+//                }
+//            }
+
+//            FileWriter fileWriter=new FileWriter(path);
+//            fileWriter.write(temp);
+//            fileWriter.flush();
+//            fileWriter.close();
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -147,10 +181,10 @@ public class ftpClient {
     }
 
     public void upload(String filename,BufferedWriter writer,InputStream input) throws IOException{
-        String path="C:\\Users\\20173\\Desktop\\ftptest\\"+filename;
-        if(this.fileDirectory.indexOf(filename)==-1){
+        String path=basePath+filename;
+        if(this.fileDirectory.indexOf(filename)!=-1){
             System.out.println("<<< Uploading...");
-            System.out.println("<<< Failure: File is not exsited.");
+            System.out.println("<<< Failure: File is already exsited.");
             return;
         }
         usePasv(writer,input);
@@ -160,20 +194,67 @@ public class ftpClient {
         OutputStream pasvOutput=uploadSock.getOutputStream();
         read(input);
         try{
-            File file=new File(path);
-            FileInputStream fileContent=new FileInputStream(file);
-            System.out.println(fileContent);
+            BufferedOutputStream out=null;
+            BufferedInputStream in=null;
+            in=new BufferedInputStream(new FileInputStream(path));
+            out=new BufferedOutputStream(pasvOutput);
+            byte[] bytes = new byte[1024];
+            int len=-1;
+            int tranferSize=0;
+            while((len=in.read(bytes))!=-1){
+                tranferSize+=len;
+                out.write(bytes,0,len);
+            }
+            in.close();
+            out.close();
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        read(input);
+    }
+
+    public void readDirectoryFile(String filepath){
+        try{
+            File file=new File(filepath);
+            System.out.println("Now File Dictionary:");
+            /*指定位置不是目录而是一个文件时*/
+            if(!file.isDirectory()){
+                System.out.println("文件");
+                System.out.println("path=" + file.getPath());
+                System.out.println("absolutepath=" + file.getAbsolutePath());
+                System.out.println("name=" + file.getName());
+            }
+            else if(file.isDirectory()){
+                System.out.println("文件夹");
+                String[] filelist=file.list();
+                for(String temp:filelist){
+                    File fileItem=new File(filepath+"\\"+temp);
+                    if (!fileItem.isDirectory()) {
+                        System.out.println("path=" + fileItem.getPath());
+                        System.out.println("absolutepath="
+                                + fileItem.getAbsolutePath());
+                        System.out.println("           "+"name=" + fileItem.getName());
+
+                    } else if (fileItem.isDirectory()) {
+                        /*递归搜索文件*/
+                        readDirectoryFile(filepath + "\\" + temp);
+                    }
+                }
+            }
         }catch (Exception e){
             e.printStackTrace();
         }
     }
+
 
     public boolean fileExist(String path){
         File file=new File(path);
         if(file.exists()) return true;
         else return false;
     }
-//    public String commendCode(String message){
+    //    public String commendCode(String message){
 //
 //    }
 //    public int read(InputStream in) throws IOException{
@@ -194,8 +275,8 @@ public class ftpClient {
                 System.out.println("<<< File Directory:");
                 System.out.print(s);
                 /*
-                * 保存文件列表用于判断文件存在等
-                * */
+                 * 保存文件列表用于判断文件存在等
+                 * */
                 String[] dirctionary=s.split("\r\n");
                 for(String temp:dirctionary){
                     String[] file=temp.split("\\s+");
@@ -222,8 +303,8 @@ public class ftpClient {
                         if(status==227) {
                             String[] portCalFront=t.split(",");
                             /*
-                            * Attention )是特殊符号要转义 分隔符中也要转义
-                            * */
+                             * Attention )是特殊符号要转义 分隔符中也要转义
+                             * */
                             String[] portCalBack=portCalFront[5].split("\\)");
                             return (Integer.valueOf(portCalFront[4])*256)+Integer.valueOf(portCalBack[0]);
                         }
