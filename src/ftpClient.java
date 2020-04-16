@@ -194,15 +194,33 @@ public class ftpClient {
         OutputStream pasvOutput=uploadSock.getOutputStream();
         read(input);
         try{
+            System.out.println("Uploading...");
             BufferedOutputStream out=null;
             BufferedInputStream in=null;
             in=new BufferedInputStream(new FileInputStream(path));
             out=new BufferedOutputStream(pasvOutput);
             byte[] bytes = new byte[1024];
             int len=-1;
-            int tranferSize=0;
+            long tranferSize=0;
+            File tempCalSize=new File(path);
+            long allSize=tempCalSize.length();
+            boolean firstTimeTag=true;
             while((len=in.read(bytes))!=-1){
                 tranferSize+=len;
+                //System.out.println("Transfer rate:"+tranferSize*100/allSize+"%");
+                /*
+                * 最前面的限制条件是为了不把0%都打出来
+                * */
+                if(tranferSize*100/allSize!=0 && ((int)(tranferSize*100/allSize))%10==0 &&firstTimeTag){
+                    firstTimeTag=false;
+                    System.out.println("Transfer rate:"+tranferSize*100/allSize+"%");
+                }
+                else if(((int)(tranferSize*100/allSize))%10==1)
+                    firstTimeTag=true;
+                /*要不然光靠上面的变不回来了*/
+
+
+//                System.out.println(tranferSize+"     "+(int)(tranferSize*100/allSize));
                 out.write(bytes,0,len);
             }
             in.close();
@@ -224,7 +242,7 @@ public class ftpClient {
                 System.out.println("文件");
                 System.out.println("path=" + file.getPath());
                 System.out.println("absolutepath=" + file.getAbsolutePath());
-                System.out.println("name=" + file.getName());
+                System.out.println("name=" + file.getName()+"  "+fileSize(file));
             }
             else if(file.isDirectory()){
                 System.out.println("文件夹");
@@ -235,7 +253,8 @@ public class ftpClient {
                         System.out.println("path=" + fileItem.getPath());
                         System.out.println("absolutepath="
                                 + fileItem.getAbsolutePath());
-                        System.out.println("           "+"name=" + fileItem.getName());
+
+                        System.out.println("           "+"name=" + fileItem.getName()+"  "+fileSize(fileItem));
 
                     } else if (fileItem.isDirectory()) {
                         /*递归搜索文件*/
@@ -247,7 +266,15 @@ public class ftpClient {
             e.printStackTrace();
         }
     }
-
+    /*
+    * 确定文件大小及合适展示单位
+    * */
+    public String fileSize(File file){
+        if(file.length()<1024) return file.length()+"B";
+        else if(file.length()<Math.pow(1024,2)) return file.length()/1024+"KB";
+        else if(file.length()<Math.pow(1024,3)) return file.length()/Math.pow(1024,2)+"MB";
+        else return file.length()/Math.pow(1024,3)+"GB";
+    }
 
     public boolean fileExist(String path){
         File file=new File(path);
