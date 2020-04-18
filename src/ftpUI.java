@@ -6,20 +6,35 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 public class ftpUI {
-    public static JScrollPane leftBottomCenter;
-    public static JScrollPane rightBottomCenter;
-    private static JTextField hostname_in;
-    private static JTextField username_in;
-    private static JPasswordField passwd_in;
-    private static JTextField port_in;
-    private static JTextField clientDirSearch;
-    private static JTextField serverDirSearch;
-    private static JButton clientDirUpdate;
+    public JScrollPane leftBottomCenter;
+    public JScrollPane rightBottomCenter;
+    private JTextField hostname_in;
+    private JTextField username_in;
+    private JPasswordField passwd_in;
+    private JTextField port_in;
+    private JTextField clientDirSearch;
+    private JTextField serverDirSearch;
+    private JButton clientDirUpdate;
+    private JList<String> dirShower;
+    private JButton serverDirUpdate;
+    private JList<String> serverdirShower;
+
+    private JScrollPane bottomScollPane;
+    private JTextArea commendArea=new JTextArea();
+    private JButton progressStopMisson;
+
 
     public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
+        ftpUI test=new ftpUI();
+
+
+    }
+    public ftpUI() throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         JFrame jFrame=new JFrame("FTPClient");
 
@@ -33,11 +48,11 @@ public class ftpUI {
         JPanel midPanel=new JPanel();
         jFrame.add(midPanel,BorderLayout.CENTER);
 
-        JTextArea Status=new JTextArea();
-        JScrollPane bottomPanel=new JScrollPane(Status);
+        JPanel bottomPanel=new JPanel();
         jFrame.add(bottomPanel,BorderLayout.SOUTH);
         placeTopComponents(topPanel);
         placeCenterComponents(midPanel);
+        placeBottomComponents(bottomPanel);
         topPanel.setPreferredSize(new Dimension(0,50));
         midPanel.setPreferredSize(new Dimension(0,450));
         bottomPanel.setPreferredSize(new Dimension(0,100));
@@ -47,11 +62,9 @@ public class ftpUI {
 
         jFrame.setResizable(false);
         jFrame.setVisible(true);
-
-
     }
 
-    private static void placeTopComponents(JPanel panel){
+    private void placeTopComponents(JPanel panel){
         panel.setLayout(null);
         JLabel hostname=new JLabel("主机地址:");
         JLabel username=new JLabel("用户名:");
@@ -65,9 +78,33 @@ public class ftpUI {
         login.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(hostname_in.getText());
-                System.out.println(username_in.getText());
-                System.out.println(passwd_in.getPassword());
+                String hostname=hostname_in.getText();
+                String username=username_in.getText();
+                String passwd=passwd_in.getPassword().toString();
+                String port=port_in.getText();
+                if(hostname!=null&&username!=null&&passwd!=null&&port!=null){
+                    /*
+                    * Login
+                    * 成功事件也没写
+                    * 弹个窗说明一下也行
+                    * 或者把成功信息扔在下面命令栏也行
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    *
+                    * */
+                }
             }
         });
 
@@ -90,7 +127,7 @@ public class ftpUI {
         panel.add(port);
         panel.add(port_in);
     }
-    private static void placeCenterComponents(JPanel panel){
+    private void placeCenterComponents(JPanel panel){
         panel.setLayout(new BorderLayout());
         JPanel areaLeft=new JPanel();
         JPanel areaRight=new JPanel();
@@ -131,22 +168,36 @@ public class ftpUI {
         clientDirUpdate.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if(clientDirSearch.getText().equals("")) return;
                 showDirContent(clientDirSearch.getText());
             }
             public void showDirContent(String path){
                 try{
                     File file=new File(path);
                     System.out.println("Now File Dictionary:");
+                    List<String> dirShowContent=new ArrayList<>();
                     /*指定位置不是目录而是一个文件时*/
                     if(!file.isDirectory()){
                         //System.out.println("文件");
 //                        System.out.println("path=" + file.getPath());
 //                        System.out.println("absolutepath=" + file.getAbsolutePath());
-                        System.out.println("name=" + file.getName()+"  "+fileSize(file)+"  "+file.lastModified());
+                        /*
+                        * 因为当前的List内部只有一个元素 所以大小设置为1
+                        * */
+                        //dirShowContent=new String[1];
+                        Calendar cal = Calendar.getInstance();
+                        long time = file.lastModified();
+                        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        cal.setTimeInMillis(time);
+                        dirShowContent.add(String.format("File: %-40s%-10s%s",file.getName(),fileSize(file),formatter.format(cal.getTime())));
+                        //System.out.println("File: " + file.getName()+"  "+fileSize(file)+"  "+file.lastModified());
                     }
                     else if(file.isDirectory()){
                         //System.out.println("文件夹");
                         String[] filelist=file.list();
+                        int itemNum=filelist.length;
+                        int temp_num=0;
+                        //dirShowContent=new String[itemNum];
                         for(String temp:filelist){
                             File fileItem=new File(path+"\\"+temp);
                             if (!fileItem.isDirectory()) {
@@ -157,7 +208,10 @@ public class ftpUI {
                                 long time = fileItem.lastModified();
                                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                                 cal.setTimeInMillis(time);
-                                System.out.println("File: " + fileItem.getName()+"  "+fileSize(fileItem)+"  "+formatter.format(cal.getTime()));
+
+                                dirShowContent.add(String.format("File: %-30s%-10s%s",fileItem.getName(),fileSize(fileItem),formatter.format(cal.getTime())));
+                                //temp_num=temp_num+1;
+                                //System.out.println("File: " + fileItem.getName()+"\t"+fileSize(fileItem)+"\t"+formatter.format(cal.getTime()));
 
                             } else if (fileItem.isDirectory()) {
                                 /*递归搜索文件*/
@@ -166,20 +220,41 @@ public class ftpUI {
                                 long time = fileItem.lastModified();
                                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                                 cal.setTimeInMillis(time);
-                                System.out.println("Dir: " + fileItem.getName()+"  "+formatter.format(cal.getTime()));
+
+                                dirShowContent.add(String.format("Dir:  %-30s%-10s%s",fileItem.getName(),fileSize(fileItem),formatter.format(cal.getTime())));
+                                //temp_num=temp_num+1;
+                                //System.out.println("Dir:  " + fileItem.getName()+"  "+formatter.format(cal.getTime()));
                             }
                         }
                     }
+
+                    /*
+                    * JList只能使用String[]初始化
+                    * 一开始我们又不知道文件列表长度
+                    * 只能先存入ArrayList之后导入定长数组做初始化
+                    * */
+                    int temp_num=0;
+                    String[] initList=new String[dirShowContent.size()];
+                    for(String i:dirShowContent){
+                        initList[temp_num]=i;
+                        temp_num+=1;
+                    }
+                    dirShower=new JList<String>(initList);
+                    dirShower.setFont(new Font(Font.MONOSPACED,Font.PLAIN,11));
+                    leftBottomCenter.getViewport().add(dirShower);
                 }catch (Exception e){
                     e.printStackTrace();
                 }
             }
             public String fileSize(File file){
-                if(file.length()<1024) return file.length()+"B";
-                else if(file.length()<Math.pow(1024,2)) return file.length()/1024+"KB";
-                else if(file.length()<Math.pow(1024,3)) return file.length()/Math.pow(1024,2)+"MB";
-                else return file.length()/Math.pow(1024,3)+"GB";
+                if(file.length()<1024) return String.format("%dB",file.length());
+                else if(file.length()<Math.pow(1024,2)) return String.format("%dKB",file.length()/1024);
+                else if(file.length()<Math.pow(1024,3)) return String.format("%.2fMB",file.length()/Math.pow(1024,2));
+                else return String.format("%.2fGB",file.length()/Math.pow(1024,3));
             }
+//            public String getType(Object o) { //获取变量类型方法
+//                return o.getClass().toString(); //利用Java中的反射机制
+//            }
         });
 
 
@@ -203,6 +278,48 @@ public class ftpUI {
         JLabel serverDirName=new JLabel("服务器当前文件夹:");
         serverDirSearch=new JTextField(":\\",40);
         JButton serverDirUpdate=new JButton("查找");
+
+        serverDirUpdate.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                List<String> content=new ArrayList<>();
+                showDirContent(content);
+                /*
+                *
+                * 此处展示服务器的文件序列
+                * 由于服务器文件可能有访问限制不可能输入什么文件路径
+                * 就展示什么路径
+                *
+                * 参数接受的是List<String>
+                * 也就是向服务器发送list命令后传回的结果稍加处理即可
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                * */
+            }
+            private void showDirContent(List<String> s){
+                String[] serverdir=new String[s.size()];
+                int num=0;
+                for(String tmp:s){
+                    serverdir[num]=tmp;
+                    num+=1;
+                }
+                serverdirShower=new JList<String>(serverdir);
+                serverdirShower.setFont(new Font(Font.MONOSPACED,Font.PLAIN,11));
+                rightBottomCenter.getViewport().add(serverdirShower);
+            }
+        });
+
         rightBottomNorth.add(serverDirName);
         rightBottomNorth.add(serverDirSearch);
         rightBottomNorth.add(serverDirUpdate);
@@ -261,9 +378,21 @@ public class ftpUI {
 
     }
 
-//    private static void placeBottomComponents(JPanel panel){
-//
-//    }
+    private void placeBottomComponents(JPanel panel){
+        panel.setLayout(new BorderLayout());
+        JPanel bottomTop=new JPanel();
+        JProgressBar progressBar=new JProgressBar();
+        progressBar.setMinimum(0);
+        progressBar.setMaximum(100);
+        progressBar.setStringPainted(true);
+        bottomTop.add(progressBar);
+        progressStopMisson=new JButton("暂停");
+        bottomTop.add(progressStopMisson);
+        panel.add(bottomTop,BorderLayout.NORTH);
+
+        bottomScollPane=new JScrollPane(commendArea);
+        panel.add(bottomScollPane,BorderLayout.CENTER);
+    }
 
 }
 
