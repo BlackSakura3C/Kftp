@@ -418,7 +418,7 @@ public class ftpUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    ftp.upload(processfilename,ftp.writer,ftp.fisrtSock_input);
+                    ftp.upload(clientDirSearch.getText(),processfilename,ftp.writer,ftp.fisrtSock_input);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -429,7 +429,7 @@ public class ftpUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    ftp.downLoad(processfilename,ftp.writer,ftp.fisrtSock_input);
+                    ftp.downLoad(clientDirSearch.getText(),processfilename,ftp.writer,ftp.fisrtSock_input);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }

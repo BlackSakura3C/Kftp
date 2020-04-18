@@ -19,7 +19,7 @@ public class ftpClient {
     private String user;
     private String passwd;
     private List<String> fileDirectory=new ArrayList<>();
-    private String basePath="C:\\Users\\20173\\Desktop\\ftptest\\";
+    //private String basePath="C:\\Users\\20173\\Desktop\\ftptest\\";
     public BufferedWriter writer;
     public BufferedReader reader;
     public InputStream fisrtSock_input;
@@ -133,12 +133,14 @@ public class ftpClient {
         read(input);
         return dir;
     }
-    public void downLoad(String filename,BufferedWriter writer,InputStream input) throws IOException{
+    public void downLoad(String basePath,String filename,BufferedWriter writer,InputStream input) throws IOException{
         /*
          *
          * 后面需要调整成为Windows下的当前路径
          *
          * */
+        if(basePath.substring(basePath.length()-1).equals("\\")){}
+        else basePath+="\\";
         if(this.fileDirectory.indexOf(filename)==-1){
             System.out.println("<<< Searching File...");
             System.out.println("<<< Failure: Server File is not exsited.");
@@ -196,7 +198,9 @@ public class ftpClient {
         read(input);
     }
 
-    public void upload(String filename,BufferedWriter writer,InputStream input) throws IOException{
+    public void upload(String basePath,String filename,BufferedWriter writer,InputStream input) throws IOException{
+        if(basePath.substring(basePath.length()-1).equals("\\")){}
+        else basePath+="\\";
         String path=basePath+filename;
         if(this.fileDirectory.indexOf(filename)!=-1){
             System.out.println("<<< Uploading...");
@@ -211,6 +215,7 @@ public class ftpClient {
         read(input);
         try{
             System.out.println("Uploading...");
+            ftpUI.commendArea.append("Uploading...");
             BufferedOutputStream out=null;
             BufferedInputStream in=null;
             in=new BufferedInputStream(new FileInputStream(path));
