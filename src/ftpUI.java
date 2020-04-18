@@ -1,16 +1,31 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+
+/*
+*
+* 由于没有做成多线程的
+* 主线程肯定是UI线程
+* 为了实现Socket的响应
+* 所有的FTP操作都需要加上重新建立Socket的操作[相当于不断连接进行操作处理]
+* 后续应该考虑多线程操作
+*
+*
+* */
 public class ftpUI {
+    private JFrame jFrame;
     public JScrollPane leftBottomCenter;
     public JScrollPane rightBottomCenter;
     private JTextField hostname_in;
@@ -25,8 +40,13 @@ public class ftpUI {
     private JList<String> serverdirShower;
 
     private JScrollPane bottomScollPane;
-    private JTextArea commendArea=new JTextArea();
+    public static JTextArea commendArea=new JTextArea();
     private JButton progressStopMisson;
+
+    private static ftpClient ftp;
+    private String processfilename;//左右两块Jlist中选中的文件名
+    private String[] clientDirArray;
+    private String[] serverDirArray;
 
 
     public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
@@ -36,7 +56,7 @@ public class ftpUI {
     }
     public ftpUI() throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        JFrame jFrame=new JFrame("FTPClient");
+        jFrame=new JFrame("FTPClient");
 
         jFrame.setLayout(new BorderLayout(10,5));
         jFrame.setSize(900,600);
@@ -80,28 +100,32 @@ public class ftpUI {
             public void actionPerformed(ActionEvent e) {
                 String hostname=hostname_in.getText();
                 String username=username_in.getText();
-                String passwd=passwd_in.getPassword().toString();
+                String passwd=new String(passwd_in.getPassword());
+                System.out.println(passwd);
                 String port=port_in.getText();
                 if(hostname!=null&&username!=null&&passwd!=null&&port!=null){
+                    ftp=new ftpClient();
+                    try {
+                        ftp.init(hostname,username,passwd);
+                        if(ftp.login()){
+                            System.out.println("Success");
+                            JOptionPane.showMessageDialog(jFrame,"登陆成功");
+                        }
+                        else{
+                            System.out.println("Fail");
+                            JOptionPane.showMessageDialog(jFrame,"登陆失败");
+                        }
+
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                     /*
                     * Login
                     * 成功事件也没写
                     * 弹个窗说明一下也行
                     * 或者把成功信息扔在下面命令栏也行
                     *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
-                    *
+
                     *
                     * */
                 }
@@ -143,11 +167,14 @@ public class ftpUI {
         JButton clientRename=new JButton("重命名");
         JButton clientNew=new JButton("新建文件夹");
         JButton clientUpload=new JButton("上传文件");
+
+
         JButton clientUpdate=new JButton("刷新");
         JButton serverDel=new JButton("删除");
         JButton serverRename=new JButton("重命名");
         JButton serverNew=new JButton("新建文件夹");
         JButton serverDownload=new JButton("下载文件");
+
         JButton serverUpdate=new JButton("刷新");
         areaLeft.setLayout(new BorderLayout(10,5));
         areaRight.setLayout(new BorderLayout(10,5));
@@ -234,13 +261,23 @@ public class ftpUI {
                     * 只能先存入ArrayList之后导入定长数组做初始化
                     * */
                     int temp_num=0;
-                    String[] initList=new String[dirShowContent.size()];
+                    clientDirArray=new String[dirShowContent.size()];
                     for(String i:dirShowContent){
-                        initList[temp_num]=i;
+                        clientDirArray[temp_num]=i;
                         temp_num+=1;
                     }
-                    dirShower=new JList<String>(initList);
+                    dirShower=new JList<String>(clientDirArray);
                     dirShower.setFont(new Font(Font.MONOSPACED,Font.PLAIN,11));
+
+                    dirShower.addListSelectionListener(new ListSelectionListener() {
+                        @Override
+                        public void valueChanged(ListSelectionEvent e) {
+                            String[] temp=clientDirArray[dirShower.getLeadSelectionIndex()].split("\\s+");
+                            processfilename=temp[1];
+                            System.out.println(processfilename);
+                        }
+                    });
+
                     leftBottomCenter.getViewport().add(dirShower);
                 }catch (Exception e){
                     e.printStackTrace();
@@ -282,8 +319,11 @@ public class ftpUI {
         serverDirUpdate.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                List<String> content=new ArrayList<>();
-                showDirContent(content);
+                try {
+                    showDirContent(ftp.listFile(ftp.writer,ftp.fisrtSock_input));
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
                 /*
                 *
                 * 此处展示服务器的文件序列
@@ -307,15 +347,24 @@ public class ftpUI {
                 *
                 * */
             }
-            private void showDirContent(List<String> s){
-                String[] serverdir=new String[s.size()];
-                int num=0;
-                for(String tmp:s){
-                    serverdir[num]=tmp;
-                    num+=1;
-                }
-                serverdirShower=new JList<String>(serverdir);
+            private void showDirContent(String[] s){
+                serverDirArray=s;
+//                String[] serverdir=new String[s.size()];
+//                int num=0;
+//                for(String tmp:s){
+//                    serverdir[num]=tmp;
+//                    num+=1;
+//                }
+//                serverdirShower=new JList<String>(serverdir);
+                serverdirShower=new JList<String>(serverDirArray);
                 serverdirShower.setFont(new Font(Font.MONOSPACED,Font.PLAIN,11));
+                serverdirShower.addListSelectionListener(new ListSelectionListener() {
+                    @Override
+                    public void valueChanged(ListSelectionEvent e) {
+                        String[] temp=serverDirArray[serverdirShower.getLeadSelectionIndex()].split("\\s+");
+                        processfilename=temp[8];
+                    }
+                });
                 rightBottomCenter.getViewport().add(serverdirShower);
             }
         });
@@ -363,6 +412,29 @@ public class ftpUI {
 
         rightBottom.setBackground(Color.gray);
         leftBottom.setBackground(Color.gray);
+
+
+        clientUpload.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    ftp.upload(processfilename,ftp.writer,ftp.fisrtSock_input);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        serverDownload.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    ftp.downLoad(processfilename,ftp.writer,ftp.fisrtSock_input);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
 //        leftTitle.setBackground(Color.gray);
 //        rightTitle.setBackground(Color.gray);
 

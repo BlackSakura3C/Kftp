@@ -15,41 +15,57 @@ import java.util.Scanner;
 
 public class ftpClient {
     private int pasvDataPort;
-    private static String hostname;
-    private static String user;
-    private static String passwd;
+    private String hostname;
+    private String user;
+    private String passwd;
     private List<String> fileDirectory=new ArrayList<>();
     private String basePath="C:\\Users\\20173\\Desktop\\ftptest\\";
+    public BufferedWriter writer;
+    public BufferedReader reader;
+    public InputStream fisrtSock_input;
+    public OutputStream fisrtSock_output;
     public static void main(String[] args) throws IOException {
         ftpClient test=new ftpClient();
-        Scanner scanner=new Scanner(System.in);
-        System.out.println("请输入将要连接的主机IP:");
-        hostname=scanner.nextLine();
-        System.out.println("用户名:");
-        user=scanner.nextLine();
-        System.out.println("密码:");
-        passwd=scanner.nextLine();
-//        hostname="47.97.221.221";
-//        user="kkc";
-//        passwd="kkc";
+//        Scanner scanner=new Scanner(System.in);
+//        System.out.println("请输入将要连接的主机IP:");
+//        hostname=scanner.nextLine();
+//        System.out.println("用户名:");
+//        user=scanner.nextLine();
+//        System.out.println("密码:");
+//        passwd=scanner.nextLine();
+        String hostname="47.97.221.221";
+        String  user="kkc";
+        String  passwd="kkc";
+        test.init(hostname,user,passwd);
         //"47.97.221.221"
-        Socket sock=new Socket(hostname,21);
-        System.out.println("LocalAddr"+sock.getLocalSocketAddress());
-        System.out.println("RemoteAddr"+sock.getRemoteSocketAddress());
-        try (InputStream input = sock.getInputStream()) {
-            try (OutputStream output = sock.getOutputStream()) {
-                if(test.login(input,output)==1){
-                    System.out.println("HHH");
-                }
-                test.terminal(input, output);
-            }
-        }
-        sock.close();
-        System.out.print("Disconnect");
+
     }
-    public int login(InputStream input, OutputStream output) throws IOException{
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+    public void init(String hostname,String user,String passwd) throws IOException {
+        this.hostname=hostname;
+        this.user=user;
+        this.passwd=passwd;
+//        Socket sock=new Socket(hostname,21);
+//        System.out.println("LocalAddr"+sock.getLocalSocketAddress());
+//        System.out.println("RemoteAddr"+sock.getRemoteSocketAddress());
+//        try (InputStream input = sock.getInputStream()) {
+//            try (OutputStream output = sock.getOutputStream()) {
+//                if(this.login()){
+//                }
+//                //terminal(input, output);
+//
+//            }
+//        }
+//        sock.close();
+//        System.out.print("Disconnect");
+
+    }
+    public boolean login() throws IOException{
+        Socket sock=new Socket(hostname,21);
+        InputStream input=sock.getInputStream();
+        OutputStream output=sock.getOutputStream();
+        writer = new BufferedWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8));
+        reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+        fisrtSock_input=input;
         Scanner scanner=new Scanner(System.in);
         try {
             read(input);
@@ -79,21 +95,21 @@ public class ftpClient {
              * 这个地方后期可以考虑手动增加主动模式
              * */
 
-            listFile(writer,input);
-            System.out.print("Which file do you want to download:");
-            String filename=scanner.nextLine();
-            downLoad(filename,writer,input);
-            readDirectoryFile(basePath);
-            System.out.print("Which file do you want to upload:");
-            filename=scanner.nextLine();
-            upload(filename,writer,input);
+//            listFile(writer,fisrtSock_input);
+//            System.out.print("Which file do you want to download:");
+//            String filename=scanner.nextLine();
+//            downLoad(filename,writer,input);
+//            readDirectoryFile(basePath);
+//            System.out.print("Which file do you want to upload:");
+//            filename=scanner.nextLine();
+//            upload(filename,writer,input);
 
 
         }catch (Exception e){
             e.printStackTrace();
             /**/
         }
-        return 1;
+        return true;
     }
 
     /*被动模式下数据端口是服务器分配的
@@ -105,7 +121,7 @@ public class ftpClient {
         this.pasvDataPort=read(input);
         System.out.println("Passive Port Number:"+this.pasvDataPort);
     }
-    public void listFile(BufferedWriter writer,InputStream input) throws IOException{
+    public String[] listFile(BufferedWriter writer,InputStream input) throws IOException{
         usePasv(writer,input);
         writer.write("LIST");writer.newLine();writer.flush();
         Socket pasvSock=new Socket(hostname,this.pasvDataPort);
@@ -113,9 +129,9 @@ public class ftpClient {
         //OutputStream pasvOutput=pasvSock.getOutputStream();
         /*读数据前和读数据后都会有server的返回命令 所以使用了两边read*/
         read(input);
-        readData(pasvInput);
+        String[] dir=readData(pasvInput);
         read(input);
-
+        return dir;
     }
     public void downLoad(String filename,BufferedWriter writer,InputStream input) throws IOException{
         /*
@@ -293,7 +309,7 @@ public class ftpClient {
 //            }
 //        }
 //    }
-    public void readData(InputStream in) throws IOException{
+    public String[] readData(InputStream in) throws IOException{
         while(true){
             if(in.available()!=0){
                 byte[] bytes = new byte[in.available()];
@@ -310,7 +326,7 @@ public class ftpClient {
                     this.fileDirectory.add(new String(file[8]));
                 }
 
-                return;
+                return dirctionary;
             }
         }
     }
@@ -321,6 +337,7 @@ public class ftpClient {
                 in.read(bytes);
                 String s = new String(bytes);
                 System.out.print("<<< "+s);
+                ftpUI.commendArea.append("<<< "+s);
                 String[] ss= s.split("\r\n");
                 int status=-1;
                 for(String t : ss){
