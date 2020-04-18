@@ -230,6 +230,7 @@ public class ftpClient {
                 if(tranferSize*100/allSize!=0 && ((int)(tranferSize*100/allSize))%10==0 &&firstTimeTag){
                     firstTimeTag=false;
                     System.out.println("Transfer rate:"+tranferSize*100/allSize+"%");
+                    ftpUI.commendArea.append("Transfer rate:"+tranferSize*100/allSize+"%");
                 }
                 else if(((int)(tranferSize*100/allSize))%10==1)
                     firstTimeTag=true;
